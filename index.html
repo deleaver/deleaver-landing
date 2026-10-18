@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DELeaver — a native macOS SQL client</title>
+<meta name="description" content="DELeaver is a fast, native macOS SQL client for PostgreSQL, MySQL and SQLite, with SSH and AWS Session Manager tunnels built in. Open source, MIT.">
+<meta property="og:title" content="DELeaver — a native macOS SQL client">
+<meta property="og:description" content="PostgreSQL, MySQL and SQLite in a real Mac app. SSH and AWS SSM tunnels built in. No Java, no Electron.">
+<meta property="og:url" content="https://deleaver.com/">
+<link rel="canonical" href="https://deleaver.com/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%233b82f6'/><ellipse cx='16' cy='10' rx='9' ry='4' fill='white'/><path d='M7 10v12c0 2.2 4 4 9 4s9-1.8 9-4V10' fill='none' stroke='white' stroke-width='2.5'/></svg>">
+<style>
+  :root {
+    --bg: #fbfbfd; --fg: #111318; --muted: #5b6170; --card: #ffffff; --line: #e4e6ec;
+    --accent: #2563eb; --accent-fg: #ffffff; --code: #f2f4f8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0c0d10; --fg: #eceef3; --muted: #9aa1b0; --card: #15171c; --line: #262932;
+            --accent: #60a5fa; --accent-fg: #0c0d10; --code: #1b1e25; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 16px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif; }
+  a { color: var(--accent); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; }
+  .logo { font-weight: 700; font-size: 18px; text-decoration: none; color: var(--fg); }
+  .logo b { color: var(--accent); }
+  nav a.gh { color: var(--muted); text-decoration: none; font-size: 15px; }
+  header { text-align: center; padding: 64px 0 40px; }
+  h1 { font-size: clamp(36px, 6vw, 60px); line-height: 1.08; letter-spacing: -0.025em; margin: 0 0 18px; }
+  .lead { font-size: clamp(17px, 2.2vw, 20px); color: var(--muted); max-width: 640px; margin: 0 auto 32px; }
+  .ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 12px 22px; border-radius: 10px; font-weight: 600; text-decoration: none; border: 1px solid var(--line); color: var(--fg); }
+  .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+  .meta { margin-top: 14px; font-size: 13px; color: var(--muted); }
+
+  /* App window mock */
+  .window { margin: 48px auto 0; max-width: 960px; border: 1px solid var(--line); border-radius: 12px;
+            background: var(--card); overflow: hidden; box-shadow: 0 30px 80px -30px rgba(0,0,0,.35); text-align: left; }
+  .bar { display: flex; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .bar i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+  .bar i:nth-child(2) { background: #febc2e; } .bar i:nth-child(3) { background: #28c840; }
+  .panes { display: grid; grid-template-columns: 200px 1fr; min-height: 300px; font-size: 13px; }
+  .tree { border-right: 1px solid var(--line); padding: 12px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .tree div { padding: 2px 0; white-space: nowrap; }
+  .tree .on { color: var(--fg); }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #28c840; margin-right: 6px; }
+  .editor { padding: 14px 16px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); border-bottom: 1px solid var(--line); }
+  .k { color: #c026d3; } .s { color: #16a34a; } .n { color: #ea580c; }
+  table { width: 100%; border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  th, td { text-align: left; padding: 6px 16px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; }
+
+  section { padding: 80px 0 0; }
+  h2 { font-size: clamp(26px, 4vw, 36px); letter-spacing: -0.02em; margin: 0 0 12px; text-align: center; }
+  .sub { text-align: center; color: var(--muted); margin: 0 auto 40px; max-width: 600px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+  .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  pre { background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 18px; overflow-x: auto; font-size: 14px; }
+  footer { padding: 80px 0 40px; color: var(--muted); font-size: 14px; text-align: center; }
+
+  @media (max-width: 640px) {
+    .panes { grid-template-columns: 1fr; }
+    .tree { display: none; }
+    th:nth-child(3), td:nth-child(3) { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="logo" href="/">DE<b>Leaver</b></a>
+    <a class="gh" href="https://github.com/delfrinandopranata/DELeaver">GitHub →</a>
+  </nav>
+
+  <header>
+    <h1>The SQL client that<br>feels like a Mac app.</h1>
+    <p class="lead">PostgreSQL, MySQL and SQLite in one fast, native app written in Swift. SSH and AWS Session Manager tunnels are built in. No Java, no Electron.</p>
+    <div class="ctas">
+      <a class="btn primary" href="https://github.com/delfrinandopranata/DELeaver">Get DELeaver</a>
+      <a class="btn" href="#build">Build from source</a>
+    </div>
+    <p class="meta">Free and open source · MIT licence · macOS</p>
+
+    <div class="window" aria-hidden="true">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <div class="panes">
+        <div class="tree">
+          <div class="on"><span class="dot"></span>prod-pg (via SSM)</div>
+          <div>&nbsp;&nbsp;▾ public</div>
+          <div class="on">&nbsp;&nbsp;&nbsp;&nbsp;users</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;orders</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;invoices</div>
+          <div><span class="dot" style="background:#febc2e"></span>staging-mysql</div>
+          <div><span class="dot" style="background:#9aa1b0"></span>local.sqlite</div>
+        </div>
+        <div>
+          <div class="editor"><span class="k">SELECT</span> id, email, created_at<br><span class="k">FROM</span> users<br><span class="k">WHERE</span> plan = <span class="s">'pro'</span><br><span class="k">ORDER BY</span> created_at <span class="k">DESC LIMIT</span> <span class="n">3</span>;</div>
+          <table>
+            <tr><th>id</th><th>email</th><th>created_at</th></tr>
+            <tr><td>4812</td><td>mei@acme.io</td><td>2026-10-17 21:04</td></tr>
+            <tr><td>4807</td><td>arjun@globex.com</td><td>2026-10-17 09:41</td></tr>
+            <tr><td>4799</td><td>sam@initech.dev</td><td>2026-10-16 18:22</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <h2>Everything you open a database client for</h2>
+    <p class="sub">Connect, query, browse and edit, all without leaving one window.</p>
+    <div class="grid">
+      <div class="card"><h3>Three engines, native drivers</h3><p>PostgreSQL, MySQL/MariaDB and SQLite through drivers written in pure Swift. TLS is supported, including verify-full.</p></div>
+      <div class="card"><h3>Tunnels built in</h3><p>Connect through SSH or AWS Systems Manager Session Manager to databases with no public access. SSO profiles work.</p></div>
+      <div class="card"><h3>A real SQL editor</h3><p>Tabs, syntax highlighting, completion, a formatter, history, Explain Plan, and cancel for long-running queries.</p></div>
+      <div class="card"><h3>Edit with a safety net</h3><p>Edit rows inline. DELeaver shows you the SQL and runs every change in a transaction once you confirm it.</p></div>
+      <div class="card"><h3>Export and import</h3><p>Sort, filter and page through typed results. Export to CSV or JSON, and preview a CSV before you import it.</p></div>
+      <div class="card"><h3>Secrets stay secret</h3><p>Passwords live in the macOS Keychain. Profiles never store them, and the app never reads your AWS credentials.</p></div>
+    </div>
+  </section>
+
+  <section id="build">
+    <h2>Build it in a minute</h2>
+    <p class="sub">You need Swift 6 or later. It has no third-party packages.</p>
+<pre><code>git clone https://github.com/delfrinandopranata/DELeaver.git
+cd DELeaver
+scripts/make-app.sh &amp;&amp; open build/DELeaver.app</code></pre>
+  </section>
+
+  <footer>
+    © 2026 Delfrinando Pranata · <a href="https://github.com/delfrinandopranata/DELeaver">Source on GitHub</a> · MIT licence<br>
+    DELeaver isn't affiliated with DBeaver.
+  </footer>
+</div>
+</body>
+</html>
